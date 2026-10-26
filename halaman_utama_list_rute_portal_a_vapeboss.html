@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Halaman Utama & List Rute (PORTAL A) - Vapeboss</title>
+    <!-- Vue 3 & Tailwind CSS -->
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Press+Start+2P&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        .font-marker { font-family: 'Permanent Marker', cursive; }
+        .font-pixel { font-family: 'Press Start 2P', cursive; }
+        .bottom-sheet { transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sheet-hidden { transform: translateY(100%); }
+        .sheet-visible { transform: translateY(0); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .neon-marquee-container {
+            width: 100%; overflow: hidden; background-color: #000;
+            padding: 15px 0; border-radius: 14px; border: 3px solid #334155;
+            box-shadow: inset 0 0 12px rgba(0,255,0,0.25), 0 8px 20px rgba(0,0,0,0.15); position: relative;
+        }
+        .neon-marquee {
+            display: inline-block; white-space: nowrap; animation: marquee 4.5s linear infinite;
+            font-size: 28px; color: #0f0; text-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 20px #0f0;
+        }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="text-slate-900 select-none">
+    <div id="app" v-cloak class="max-w-md mx-auto min-h-screen relative overflow-hidden shadow-2xl bg-slate-50 flex flex-col">
+        
+        <!-- TOAST NOTIFICATION (Non-Blocking, Tanpa Refresh Halaman) -->
+        <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4">
+            <div v-for="t in toasts" :key="t.id" 
+                 class="pointer-events-auto flex items-start gap-2.5 p-3 rounded-xl shadow-xl border backdrop-blur-md transition-all"
+                 :class="{
+                     'bg-rose-900/95 border-rose-700 text-white': t.type === 'error',
+                     'bg-emerald-900/95 border-emerald-700 text-white': t.type === 'success',
+                     'bg-amber-900/95 border-amber-700 text-white': t.type === 'warning',
+                     'bg-slate-900/95 border-slate-700 text-white': t.type === 'info'
+                 }">
+                <div class="flex-1 text-xs">
+                    <p class="font-extrabold text-sm leading-snug">{{ t.title }}</p>
+                    <p v-if="t.message" class="opacity-90 mt-0.5 leading-snug">{{ t.message }}</p>
+                </div>
+                <button @click="removeToast(t.id)" title="Tutup Notifikasi" class="opacity-75 hover:opacity-100 text-xs font-black px-1">✕</button>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 1: HALAMAN UTAMA (HOMEPAGE A - TANPA INPUT NAMA)           -->
+        <!-- ============================================================== -->
+        <div v-if="currentView === 'home'" class="flex flex-col items-center justify-center flex-1 p-6 text-center relative z-10 bg-white">
+            <!-- Tombol Pengaturan Link GitHub (Kanan Atas) -->
+            <div class="absolute top-4 right-4 z-30">
+                <button @click="showConfigModal = true" 
+                        title="Pengaturan Link GitHub Antar Portal (A, B, C)"
+                        class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 flex items-center justify-center shadow-sm transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-4">
+                (A) — Homepage &amp; List Rute
+            </span>
+            <h1 class="font-marker text-4xl leading-tight mb-6 text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">
+                WELCOME<br><span class="text-slate-900">TO</span><br>PORTAL<br>WAREHOUSE
+            </h1>
+            
+            <div class="w-full max-w-[280px] mb-7">
+                <div class="neon-marquee-container"><span class="neon-marquee font-pixel">VAPEBOSS</span></div>
+            </div>
+
+            <!-- Akses Cepat List Rute (Terintegrasi di Script A Tanpa Input Nama) -->
+            <div class="w-full max-w-[280px] mb-6">
+                <button @click="openRuteView(false)" 
+                        class="w-full py-3 px-4 rounded-2xl font-extrabold text-xs bg-slate-900 hover:bg-slate-800 text-[#d4e157] shadow-md transition active:scale-95">
+                    Lihat Daftar Rute Shift 
+                </button>
+            </div>
+
+            <h2 class="font-marker text-2xl text-slate-900 drop-shadow-sm mb-7 leading-snug">
+                SEMANGAT KERJA !!!<br>AND<br>LET'S THRIVE
+            </h2>
+
+            <button @click="menuOpen = true" 
+                    class="font-pixel text-xl text-purple-900 bg-gradient-to-r from-yellow-400 via-yellow-300 to-pink-400 px-10 py-4 rounded-full border-4 border-pink-500 shadow-[0_8px_0_rgb(236,72,153)] hover:translate-y-1 transition-all active:shadow-none active:translate-y-2">
+                MENU
+            </button>
+
+           
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 2: HALAMAN LIST RUTE (TERGABUNG DALAM SCRIPT A)            -->
+        <!-- ============================================================== -->
+        <div v-if="currentView === 'rute'" class="flex-1 pb-20 relative z-20 flex flex-col">
+            <!-- Sticky Header List Rute -->
+            <div class="bg-slate-900 text-white p-3 sticky top-0 z-30 shadow-md">
+                <div class="flex items-center justify-between gap-2">
+                    <button @click="currentView = 'home'" 
+                            class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-700 border border-slate-700">
+                        Halaman Utama
+                    </button>
+                    <div class="text-center">
+                        <h2 class="font-extrabold text-sm leading-tight uppercase">Daftar Rute Shift</h2>
+                        <p class="text-[10px] text-[#d4e157] font-semibold">Master Rute Cabang (Tanpa Nama)</p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <!-- Hanya tarik ulang dari Spreadsheet jika tombol ini diklik -->
+                        <button @click="fetchRuteData(true)" :disabled="loading"
+                                class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold">
+                            {{ loading ? '...' : 'Tarik Data' }}
+                        </button>
+                        <button @click="menuOpen = true" 
+                                class="bg-[#d4e157] text-slate-900 px-2.5 py-1.5 rounded-lg text-[11px] font-black hover:bg-lime-300">
+                            Menu Portal
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pencarian & Filter Rute Secara Instan (Tanpa Reload / Tanpa Refresh) -->
+                <div v-if="!loading && ruteData.length > 0" class="mt-2.5 pt-2.5 border-t border-slate-800 space-y-2">
+                    <div class="relative">
+                        <input ref="ruteSearchInput" v-model="ruteSearchQuery" type="text" 
+                               @keydown.esc="clearRuteFilter"
+                               placeholder="Ketik nama cabang toko atau shift..." 
+                               class="w-full bg-slate-800 text-white placeholder-slate-400 text-xs rounded-lg pl-3 pr-8 py-2 border border-slate-700 focus:outline-none focus:border-[#d4e157]">
+                        <!-- Tombol Bersihkan Input Salah Tanpa Refresh Halaman -->
+                        <button v-if="ruteSearchQuery" @click="clearRutesearchOnly" 
+                                title="Bersihkan ketikan"
+                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-400 text-xs font-black">
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- Filter Bubble Shift -->
+                    <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-0.5">
+                        <button v-for="sh in ruteShiftList" :key="sh" 
+                                @click="selectedRuteShift = sh" 
+                                class="whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-extrabold transition-colors border" 
+                                :class="selectedRuteShift === sh ? 'bg-[#d4e157] text-slate-900 border-[#d4e157]' : 'bg-slate-800 text-slate-300 border-slate-700'">
+                            {{ sh }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State (Hanya saat menarik data baru dari Spreadsheet) -->
+            <div v-if="loading" class="flex flex-col items-center justify-center pt-20 flex-1">
+                <div class="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full mb-3"></div>
+                <p class="text-slate-500 text-xs font-bold">Menarik data Master Rute dari Spreadsheet...</p>
+            </div>
+
+            <!-- Daftar Rute Berdasarkan Shift -->
+            <div v-if="!loading" class="p-3 space-y-3 flex-1">
+                <template v-if="Object.keys(groupedRoutes).length > 0">
+                    <div v-for="(cabangList, shiftName) in groupedRoutes" :key="shiftName" 
+                         class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="bg-[#d4e157] px-3.5 py-2.5 border-b border-slate-200 flex justify-between items-center">
+                            <h3 class="font-extrabold text-slate-900 text-xs uppercase">{{ shiftName }}</h3>
+                            <span class="text-[10px] font-extrabold bg-black/10 px-2.5 py-0.5 rounded-full">
+                                {{ cabangList.length }} Cabang
+                            </span>
+                        </div>
+                        <ul class="divide-y divide-slate-100">
+                            <li v-for="cabang in cabangList" :key="cabang" 
+                                class="px-3.5 py-2.5 text-xs text-slate-800 font-semibold flex items-center gap-2.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 block shrink-0"></span>
+                                <span>{{ cabang }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </template>
+
+                <!-- Jika Ketikan Pencarian Tidak Cocok: Cukup Bersihkan Input Tanpa Reload Halaman -->
+                <div v-else class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 p-6">
+                    <p class="text-slate-700 text-xs font-extrabold mb-1">
+                        Cabang atau Shift "{{ ruteSearchQuery }}" tidak ditemukan.
+                    </p>
+                    <p class="text-slate-400 text-[11px] mb-3">
+                        Bersihkan kata kunci untuk kembali menampilkan daftar rute tanpa memuat ulang halaman.
+                    </p>
+                    <button @click="clearRuteFilter" 
+                            class="bg-slate-900 text-white text-xs font-extrabold px-4 py-2 rounded-xl hover:bg-slate-800">
+                        Bersihkan Input Pencarian
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- BOTTOM SHEET MENU NAVIGASI ANTAR PORTAL (A <-> B <-> C)        -->
+        <!-- ============================================================== -->
+        <div class="fixed inset-0 max-w-md mx-auto bg-black/60 z-40 transition-opacity duration-300" 
+             :class="menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'" 
+             @click="menuOpen = false"></div>
+        
+        <div class="bottom-sheet fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#d4e157] rounded-t-3xl p-7 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]" 
+             :class="menuOpen ? 'sheet-visible' : 'sheet-hidden'">
+            <div class="w-16 h-1.5 bg-black/20 rounded-full mx-auto mb-5"></div>
+            
+            </p>
+            <div class="space-y-4 flex flex-col items-center">
+                <!-- A1. Halaman Utama (Internal di Script A) -->
+                <button v-if="currentView !== 'home'" @click="switchInternalView('home')" 
+                        class="w-full max-w-[280px] border-y-4 border-slate-900 py-2.5 text-slate-900 font-bold text-xl font-serif tracking-wide hover:bg-black/5 transition-colors text-center">
+                    Halaman Utama (A)
+                    <span class="block text-[10px] font-sans font-bold text-slate-700 uppercase tracking-wider">Kembali ke Homepage</span>
+                </button>
+
+                <!-- A2. List Rute (Internal di Script A - Tanpa Nama) -->
+                <button @click="openRuteView(false)" 
+                        class="w-full max-w-[280px] border-y-4 border-red-600 py-2.5 text-red-600 font-bold text-2xl font-serif tracking-wide hover:bg-black/5 transition-colors text-center">
+                    List Rute (A)
+                    <span class="block text-[10px] font-sans font-bold text-red-800 uppercase tracking-wider">Daftar Rute Shift (Tanpa Nama)</span>
+                </button>
+
+                <!-- B. Menuju Script B (Portal Picker) -->
+                <a :href="config.pickerUrl" 
+                   class="w-full max-w-[280px] border-y-4 border-red-600 py-2.5 text-red-600 font-bold text-2xl font-serif tracking-wide hover:bg-black/5 transition-colors text-center block no-underline">
+                    Portal Picker (B)
+                    <span class="block text-[10px] font-sans font-bold text-red-800 uppercase tracking-wider">Batch Picking &amp; Jam Ambil</span>
+                </a>
+
+                <!-- C. Menuju Script C (Portal Checker) -->
+                <a :href="config.checkerUrl" 
+                   class="w-full max-w-[280px] border-y-4 border-blue-700 py-2.5 text-blue-700 font-bold text-2xl font-serif tracking-wide hover:bg-black/5 transition-colors text-center block no-underline">
+                    Portal Checker (C)
+                    <span class="block text-[10px] font-sans font-bold text-blue-900 uppercase tracking-wider">Scan Barcode &amp; Verifikasi</span>
+                </a>
+            </div>
+            <div class="mt-5 text-center">
+                <button @click="menuOpen = false" class="text-xs font-extrabold text-slate-800 hover:text-black underline">
+                    Tutup Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL PENGATURAN LINK REPOSITORI GITHUB (A, B, C) -->
+        <div v-if="showConfigModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                    <h3 class="font-extrabold text-sm text-slate-800 uppercase">Link Antar Portal (A, B, C)</h3>
+                    <button @click="showConfigModal = false" class="text-slate-400 hover:text-slate-700 font-black">✕</button>
+                </div>
+                <div class="space-y-3 text-left">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">URL Portal A (Homepage &amp; List Rute)</label>
+                        <input type="text" v-model="config.homeUrl" 
+                               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:border-blue-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">URL Portal B (Portal Picker)</label>
+                        <input type="text" v-model="config.pickerUrl" 
+                               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:border-blue-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">URL Portal C (Portal Checker)</label>
+                        <input type="text" v-model="config.checkerUrl" 
+                               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 focus:border-blue-600 outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-5 pt-3 border-t border-slate-100">
+                    <button @click="resetConfig" class="px-3 py-2 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100">Reset Default</button>
+                    <button @click="saveConfig" class="px-4 py-2 rounded-lg text-xs font-extrabold bg-slate-900 text-white hover:bg-slate-800">Simpan Link</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCROLL TO TOP BUTTON -->
+        <transition name="fade">
+            <button v-if="showScrollTop && currentView === 'rute'" @click="scrollToTop" title="Kembali ke Atas" class="fixed bottom-6 right-6 bg-[#d4e157] text-slate-900 p-3 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.3)] z-40 hover:scale-110 transition-transform border-2 border-slate-900">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path></svg>
+            </button>
+        </transition>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                let savedConfig = null;
+                let cachedRute = [];
+                try {
+                    savedConfig = JSON.parse(localStorage.getItem('vapeboss_portal_links_v2'));
+                    cachedRute = JSON.parse(localStorage.getItem('vapeboss_rute_cache_v1')) || [];
+                } catch (e) {}
+
+                return {
+                    apiUrl: 'https://script.google.com/macros/s/AKfycbw-Hlly2gks4HjfRIdD0xL3l7Uhc7I-R2dRaGWYgFMY7qkhRWOYLcSQuEuqHCMLnnsL/exec',
+                    spreadsheetId: '1P_knQDuxqglhl0NSiqFrcsAH5aQC9m8gDWCgrWHZKCM',
+                    currentView: 'home', // 'home' | 'rute' (Satu kesatuan di Script A)
+                    menuOpen: false,
+                    showConfigModal: false,
+                    loading: false,
+                    showScrollTop: false,
+                    
+                    // Data Rute & Filter Tanpa Reload
+                    ruteData: cachedRute,
+                    ruteSearchQuery: '',
+                    selectedRuteShift: 'Semua Shift',
+                    toasts: [],
+
+                    // Konfigurasi URL Antar Script A, B, dan C
+                    config: savedConfig || {
+                        homeUrl: 'https://byteandbay.github.io/portal-utama/',
+                        pickerUrl: 'https://byteandbay.github.io/picker-webapp/',
+                        checkerUrl: 'https://byteandbay.github.io/portal-checker/'
+                    }
+                };
+            },
+            computed: {
+                ruteShiftList() {
+                    const shifts = new Set(this.ruteData.map(r => r['Shift']).filter(Boolean));
+                    return ['Semua Shift', ...Array.from(shifts)];
+                },
+                groupedRoutes() {
+                    const groups = {};
+                    const q = this.ruteSearchQuery.trim().toLowerCase();
+                    this.ruteData.forEach(row => {
+                        const shift = String(row['Shift'] || '').trim();
+                        const cabang = String(row['Cabang'] || '').trim();
+                        if (!shift || !cabang) return;
+                        if (this.selectedRuteShift !== 'Semua Shift' && shift !== this.selectedRuteShift) return;
+                        if (q && !shift.toLowerCase().includes(q) && !cabang.toLowerCase().includes(q)) return;
+
+                        if (!groups[shift]) groups[shift] = [];
+                        groups[shift].push(cabang);
+                    });
+                    return groups;
+                }
+            },
+            mounted() {
+                window.addEventListener('scroll', this.handleScroll);
+                // Jika dari Portal B atau C pengguna memilih langsung melihat "List Rute" (?view=rute)
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    if (params.get('view') === 'rute') {
+                        this.openRuteView(false);
+                    }
+                } catch (e) {}
+            },
+            unmounted() {
+                window.removeEventListener('scroll', this.handleScroll);
+            },
+            methods: {
+                handleScroll() { this.showScrollTop = window.scrollY > 200; },
+                scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); },
+                notify(type, title, message = '') {
+                    const id = Date.now() + Math.random();
+                    this.toasts.push({ id, type, title, message });
+                    setTimeout(() => this.removeToast(id), 3500);
+                },
+                removeToast(id) {
+                    this.toasts = this.toasts.filter(t => t.id !== id);
+                },
+                switchInternalView(viewName) {
+                    this.menuOpen = false;
+                    this.currentView = viewName;
+                    window.scrollTo(0, 0);
+                },
+                openRuteView(forceRefresh = false) {
+                    this.menuOpen = false;
+                    this.currentView = 'rute';
+                    window.scrollTo(0, 0);
+                    // Hanya tarik dari database jika belum ada data di memori atau user meminta tarik data baru
+                    if (this.ruteData.length === 0 || forceRefresh) {
+                        this.fetchRuteData(true);
+                    }
+                },
+                clearRutesearchOnly() {
+                    this.ruteSearchQuery = '';
+                    this.$nextTick(() => {
+                        if (this.$refs.ruteSearchInput) this.$refs.ruteSearchInput.focus();
+                    });
+                },
+                clearRuteFilter() {
+                    this.ruteSearchQuery = '';
+                    this.selectedRuteShift = 'Semua Shift';
+                    this.$nextTick(() => {
+                        if (this.$refs.ruteSearchInput) this.$refs.ruteSearchInput.focus();
+                    });
+                },
+                async fetchRuteData(showNotification = false) {
+                    this.loading = true;
+                    try {
+                        const action = 'rute';
+                        const response = await fetch(`${this.apiUrl}?action=${action}`);
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            this.ruteData = result.data || [];
+                            try {
+                                localStorage.setItem('vapeboss_rute_cache_v1', JSON.stringify(this.ruteData));
+                            } catch (e) {}
+                            if (showNotification) {
+                                this.notify('success', 'Data Rute Diperbarui', `${this.ruteData.length} data rute cabang berhasil ditarik dari Spreadsheet.`);
+                            }
+                        } else {
+                            this.notify('error', 'Gagal Memuat Rute', result.message || 'Terjadi kesalahan pada server.');
+                        }
+                    } catch (error) {
+                        this.notify('error', 'Gangguan Jaringan', 'Gagal menarik data rute baru. Menampilkan data terakhir yang tersimpan.');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                saveConfig() {
+                    try {
+                        localStorage.setItem('vapeboss_portal_links_v2', JSON.stringify(this.config));
+                    } catch (e) {}
+                    this.showConfigModal = false;
+                    this.notify('success', 'Tautan Disimpan', 'Konfigurasi link antar portal berhasil diperbarui.');
+                },
+                resetConfig() {
+                    this.config = {
+                        homeUrl: 'https://byteandbay.github.io/portal-utama/',
+                        pickerUrl: 'https://byteandbay.github.io/picker-webapp/',
+                        checkerUrl: 'https://byteandbay.github.io/portal-checker/'
+                    };
+                    this.saveConfig();
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
